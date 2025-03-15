@@ -1,40 +1,50 @@
 import streamlit as st
 from openai import OpenAI
+import os
 
-# Streamlit-Seitenkonfiguration (Titel und Icon)
-st.set_page_config(page_title="Chatbot mit Websuche", page_icon="🔎")
+# Setze API-Schlüssel (wird in secrets.toml oder Umgebungsvariable erwartet)
+api_key = os.getenv("OPENAI_API_KEY")
 
-st.title("🤖 ChatGPT mit Web-Suche")
+if not api_key:
+    st.error("⚠️ OpenAI API-Schlüssel fehlt! Setze ihn in den GitHub Actions Secrets oder secrets.toml.")
 
-# Initialisiere den Chat-Verlauf in der Session-State
+# OpenAI-Client initialisieren
+client = OpenAI(api_key=api_key)
+
+# Streamlit Seitenkonfiguration
+st.set_page_config(page_title="KI-Chatbot mit Websuche", page_icon="🔎")
+
+st.title("🤖 Chatbot mit OpenAI Websuche")
+
+# Chatverlauf initialisieren
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # Liste der Nachrichten (Dicts mit "role" und "content")
+    st.session_state.messages = []
 
-# Bisherigen Chat-Verlauf anzeigen
+# Vorherige Nachrichten anzeigen
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Eingabefeld für neue Nutzerfrage (unten im Chat-Fenster)
-if user_input := st.chat_input("Ihre Nachricht eingeben..."):
-    # 1. Nutzer-Nachricht zum Verlauf hinzufügen und anzeigen
+# Benutzereingabe
+if user_input := st.chat_input("Frage mich etwas..."):
+    # Nutzer-Eingabe speichern und anzeigen
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
-    # 2. API-Aufruf an OpenAI (mit Websuche-Tool) und KI-Antwort generieren
+
+    # KI-Antwort abrufen
     with st.spinner("KI denkt nach..."):
         try:
-            client = OpenAI()  # OpenAI-Client mit API-Key (aus Umgebungsvariable)
             response = client.responses.create(
                 model="gpt-4o",
-                tools=[{"type": "web_search_preview"}],  # Web-Suche als Tool aktivieren&#8203;:contentReference[oaicite:1]{index=1}
-                input=st.session_state.messages         # gesamter Unterhaltungsverlauf als Eingabe
+                tools=[{"type": "web_search_preview"}],  # OpenAI Websuche aktivieren
+                input=st.session_state.messages
             )
-            assistant_answer = response.output_text    # extrahiere generierten Antwort-Text
+            assistant_reply = response.output_text
         except Exception as e:
-            assistant_answer = "Entschuldigung, es ist ein Fehler aufgetreten. 🛑"
-            print(f"OpenAI API Fehler: {e}")
-    # 3. KI-Antwort zum Verlauf hinzufügen und in der UI darstellen
-    st.session_state.messages.append({"role": "assistant", "content": assistant_answer})
+            assistant_reply = f"❌ Fehler: {e}"
+
+    # Antwort speichern & anzeigen
+    st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
     with st.chat_message("assistant"):
-        st.markdown(assistant_answer)
+        st.markdown(assistant_reply)
