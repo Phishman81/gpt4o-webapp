@@ -60,6 +60,8 @@ with st.form("chat_form", clear_on_submit=True):
         st.session_state.chat_history.append({"role": "user", "message": user_input})
         assistant_reply = get_gpt4o_response(user_input)
         st.session_state.chat_history.append({"role": "assistant", "message": assistant_reply})
+        # Kein st.experimental_rerun() mehr!
+
     
 
 # Zeige den bisherigen Chatverlauf an
