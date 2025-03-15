@@ -1,68 +1,40 @@
 import streamlit as st
 from openai import OpenAI
-import os
 
-# Initialisiere den OpenAI-Client mit dem API-Schlüssel aus den Umgebungsvariablen
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Streamlit-Seitenkonfiguration (Titel und Icon)
+st.set_page_config(page_title="Chatbot mit Websuche", page_icon="🔎")
 
-# Stelle sicher, dass der Chatverlauf in der Session gespeichert wird
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+st.title("🤖 ChatGPT mit Web-Suche")
 
-st.title("Chat mit GPT-4o – Websuche & Reasoning")
+# Initialisiere den Chat-Verlauf in der Session-State
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # Liste der Nachrichten (Dicts mit "role" und "content")
 
-def get_gpt4o_response(user_message):
-    """
-    Ruft die neue Responses API von OpenAI auf, um eine Antwort zu erhalten,
-    die Websuche und Reasoning integriert.
-    """
-    try:
-        # API-Aufruf gemäß Dokumentation
-        response = client.responses.create(
-            model="gpt-4o",
-            input=[{"type": "text", "content": user_message}],
-            text={
-                "format": {
-                    "type": "text"
-                }
-            },
-            reasoning={},
-            tools=[
-                {
-                    "type": "web_search_preview",
-                    "user_location": {
-                        "type": "approximate",
-                        "country": "DE"
-                    },
-                    "search_context_size": "medium"
-                }
-            ],
-            temperature=1,
-            max_output_tokens=2048,
-            top_p=1,
-            store=True
-        )
-        # Extrahiere die Antwort; passe dies ggf. an das tatsächliche Antwortformat an.
-        answer = response.get("text", {}).get("result")
-        if not answer:
-            answer = str(response)
-        return answer
-    except Exception as e:
-        return f"Fehler beim Abrufen der Antwort: {e}"
+# Bisherigen Chat-Verlauf anzeigen
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# Erstelle ein Formular für die Eingabe
-with st.form("chat_form", clear_on_submit=True):
-    user_input = st.text_input("Schreibe deine Nachricht:")
-    submit = st.form_submit_button("Senden")
-    if submit and user_input:
-        st.session_state.chat_history.append({"role": "user", "message": user_input})
-        assistant_reply = get_gpt4o_response(user_input)
-        st.session_state.chat_history.append({"role": "assistant", "message": assistant_reply})
-        # Kein expliziter st.experimental_rerun() nötig, da das Formular die App neu rendert.
-
-# Zeige den bisherigen Chatverlauf an
-for chat in st.session_state.chat_history:
-    if chat["role"] == "user":
-        st.markdown(f"**User:** {chat['message']}")
-    else:
-        st.markdown(f"**Assistant:** {chat['message']}")
+# Eingabefeld für neue Nutzerfrage (unten im Chat-Fenster)
+if user_input := st.chat_input("Ihre Nachricht eingeben..."):
+    # 1. Nutzer-Nachricht zum Verlauf hinzufügen und anzeigen
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
+    # 2. API-Aufruf an OpenAI (mit Websuche-Tool) und KI-Antwort generieren
+    with st.spinner("KI denkt nach..."):
+        try:
+            client = OpenAI()  # OpenAI-Client mit API-Key (aus Umgebungsvariable)
+            response = client.responses.create(
+                model="gpt-4o",
+                tools=[{"type": "web_search_preview"}],  # Web-Suche als Tool aktivieren&#8203;:contentReference[oaicite:1]{index=1}
+                input=st.session_state.messages         # gesamter Unterhaltungsverlauf als Eingabe
+            )
+            assistant_answer = response.output_text    # extrahiere generierten Antwort-Text
+        except Exception as e:
+            assistant_answer = "Entschuldigung, es ist ein Fehler aufgetreten. 🛑"
+            print(f"OpenAI API Fehler: {e}")
+    # 3. KI-Antwort zum Verlauf hinzufügen und in der UI darstellen
+    st.session_state.messages.append({"role": "assistant", "content": assistant_answer})
+    with st.chat_message("assistant"):
+        st.markdown(assistant_answer)
