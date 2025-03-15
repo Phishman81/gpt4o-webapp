@@ -17,11 +17,10 @@ def get_gpt4o_response(user_message):
     die Websuche und Reasoning integriert.
     """
     try:
-        # Hier wird der API-Aufruf gemäß der Dokumentation durchgeführt.
+        # API-Aufruf gemäß Dokumentation
         response = client.responses.create(
             model="gpt-4o",
-            # Übergibt den aktuellen Nutzer-Input als einzelne Nachricht in einer Liste.
-            input=[user_message],
+            input=[{"type": "text", "content": user_message}],
             text={
                 "format": {
                     "type": "text"
@@ -43,8 +42,7 @@ def get_gpt4o_response(user_message):
             top_p=1,
             store=True
         )
-        # Extrahiere das Ergebnis aus dem Antwortobjekt.
-        # Hier wird angenommen, dass die Antwort unter response["text"]["result"] geliefert wird.
+        # Extrahiere die Antwort; passe dies ggf. an das tatsächliche Antwortformat an.
         answer = response.get("text", {}).get("result")
         if not answer:
             answer = str(response)
@@ -60,9 +58,7 @@ with st.form("chat_form", clear_on_submit=True):
         st.session_state.chat_history.append({"role": "user", "message": user_input})
         assistant_reply = get_gpt4o_response(user_input)
         st.session_state.chat_history.append({"role": "assistant", "message": assistant_reply})
-        # Kein st.experimental_rerun() mehr!
-
-    
+        # Kein expliziter st.experimental_rerun() nötig, da das Formular die App neu rendert.
 
 # Zeige den bisherigen Chatverlauf an
 for chat in st.session_state.chat_history:
