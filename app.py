@@ -1,6 +1,5 @@
 import streamlit as st
 from openai import OpenAI
-import os
 
 # OpenAI API-Key aus Streamlit Secrets laden
 api_key = st.secrets["OPENAI_API_KEY"]
@@ -15,21 +14,22 @@ st.title("🤖 Chatbot mit Websuche & Bildverstehen")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Vorherige Nachrichten anzeigen
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# 📩 Chat-Eingabe für normalen Text-Chat
+user_input = st.chat_input("Frage mich etwas...")
 
-# 🖼️ Bild-Upload für multimodale Analyse
-uploaded_file = st.file_uploader("Lade ein Bild hoch, um es von der KI analysieren zu lassen", type=["png", "jpg", "jpeg"])
+# 🖼️ **Bild-Upload für multimodale Analyse**
+st.subheader("📷 Bild hochladen zur Analyse")
+uploaded_file = st.file_uploader("Lade ein Bild hoch:", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
+    # Bild anzeigen
     st.image(uploaded_file, caption="Hochgeladenes Bild", use_column_width=True)
 
     # Datei in Binary-Format umwandeln
     image_bytes = uploaded_file.getvalue()
 
-    with st.spinner("KI analysiert das Bild..."):
+    # **KI-Bildanalyse ausführen**
+    with st.spinner("🔍 KI analysiert das Bild..."):
         try:
             response = client.responses.create(
                 model="gpt-4o",
@@ -39,18 +39,24 @@ if uploaded_file is not None:
         except Exception as e:
             image_analysis = f"❌ Fehler bei der Bildanalyse: {e}"
 
-    # Antwort speichern & anzeigen
-    st.session_state.messages.append({"role": "assistant", "content": image_analysis})
-    with st.chat_message("assistant"):
-        st.markdown(image_analysis)
+    # Antwort anzeigen
+    st.subheader("🧠 KI-Beschreibung des Bildes:")
+    st.markdown(image_analysis)
 
-# 📩 Chat-Eingabe für normalen Text-Chat
-if user_input := st.chat_input("Frage mich etwas..."):
+    # Chatverlauf aktualisieren
+    st.session_state.messages.append({"role": "assistant", "content": image_analysis})
+
+# **Bisherige Nachrichten anzeigen**
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# **KI antwortet auf den Text-Chat**
+if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # KI antwortet auf den Text
     with st.spinner("KI denkt nach..."):
         try:
             response = client.responses.create(
