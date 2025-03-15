@@ -1,2 +1,11 @@
 [server]
 fileWatcherType = "none"
+headless = true
+port = 8501
+enableCORS = false
+
+[theme]
+primaryColor = "#ff4b4b"
+backgroundColor = "#f8f9fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#000000"
