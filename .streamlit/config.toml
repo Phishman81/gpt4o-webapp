@@ -1,5 +1,4 @@
 [server]
-fileWatcherType = "none"
 headless = true
 port = 8501
 enableCORS = false
